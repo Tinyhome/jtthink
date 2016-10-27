@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:mvc="http://www.springframework.org/schema/mvc" xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                           http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/context
+                           http://www.springframework.org/schema/context/spring-context.xsd
+                           http://www.springframework.org/schema/mvc
+                           http://www.springframework.org/schema/mvc/spring-mvc.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd">
+
+    <context:component-scan base-package="com.jtthink"/>
+    <context:component-scan base-package="com.db"/>
+
+    <!-- 开启注解配置 -->
+    <mvc:annotation-driven/>
+    <!--<mvc:resources mapping="/imgs/**" location="/images/" />-->
+
+    <bean id="jedisPoolConfig" class="redis.clients.jedis.JedisPoolConfig">
+        <property name="maxTotal" value="100" />
+        <property name="maxIdle" value="5" />
+        <property name="maxWaitMillis" value="1000"/>
+        <property name="testOnBorrow" value="true"/>
+        <property name="testOnReturn" value="true"/>
+    </bean>
+
+    <bean id="shardedJedisPool" class="redis.clients.jedis.JedisPool"  >
+        <constructor-arg index="0" ref="jedisPoolConfig" />
+        <constructor-arg index="1" value="localhost"/>
+        <constructor-arg index="2" value="6379"/>
+        <constructor-arg index="3" value="500"/>
+        <!--<constructor-arg index="4" value="123"/>-->
+    </bean>
+
+    <!-- 数据源 -->
+    <bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+        <property name="driverClassName" value="com.mysql.jdbc.Driver" />
+        <property name="url" value="jdbc:mysql://192.168.8.227:8066/myjava?user=tiny&amp;password=tiny&amp;characterEncoding=UTF-8" />
+    </bean>
+
+    <!-- 会话工厂 -->
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSource" />
+        <property name="mapperLocations" value="classpath:com/db/Mapper/*.xml" />
+        <property name="typeAliasesPackage" value="com.db.Mapper" />
+    </bean>
+
+    <!-- 自动扫描映射器 -->
+    <bean  class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.db.Mapper"/>
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"/>
+    </bean>
+
+    <!-- 事务管理器 -->
+    <bean id="transactionManager"
+          class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource" />
+    </bean>
+
+    <!-- 事务注解驱动，标注@Transactional的类和方法将具有事务性 -->
+    <tx:annotation-driven transaction-manager="transactionManager" />
+
+    <bean id="jspViewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="viewClass" value="org.springframework.web.servlet.view.JstlView"/>
+        <property name="prefix" value="/WEB-INF/jsp/"/>
+        <property name="suffix" value=".jsp"/>
+    </bean>
+
+    <bean id="tb" class="com.test.TinyBean">
+        <property name="name" value="zhangsan"/>
+        <property name="age" value="18"/>
+    </bean>
+
+    <bean id="userService" class="com.service.UserService"></bean>
+    <bean id="tokenService" class="com.service.TokenService"></bean>
+    <bean id="tokenFilter" class="com.Utils.TokenFilter"></bean>
+
+
+
+    <!--<mvc:interceptors>
+        &lt;!&ndash; mvc:interceptors根下面的Interceptor将拦截所有的请求 &ndash;&gt;
+        &lt;!&ndash;  <bean class="com.Utils.TokenInterceptor"/>&ndash;&gt;
+        <mvc:interceptor>
+            <mvc:mapping path="/**"/>
+            <mvc:exclude-mapping path="/token"/>
+            &lt;!&ndash; 定义在mvc:interceptor下面的表示是对特定的请求用下面的bean拦截&ndash;&gt;
+            <bean class="com.Utils.TokenInterceptor"/>
+        </mvc:interceptor>
+    </mvc:interceptors>-->
+
+    <bean id="myLogger" class="org.apache.logging.log4j.LogManager"/>
+
+    <!-- 切面类 -->
+    <bean id="tokenCheckClass" class="com.Utils.TokenCheckClass"/>
+    <bean id="logUtil" class="com.Utils.LogUtil"/>
+
+    <aop:aspectj-autoproxy proxy-target-class="true" />
+    <!-- Aop配置 -->
+    <aop:config>
+        <!-- 定义一个切入点表达式： 拦截哪些方法 -->
+        <aop:aspect ref="tokenCheckClass"  >
+            <aop:around method="exec" pointcut="execution( * com.jtthink.NewsController.*(..) )"/>
+        </aop:aspect>
+
+        <aop:aspect ref="logUtil">
+            <aop:after-throwing method="doLog" throwing="ex" pointcut="execution( * com.jtthink.*.*(..) )"/>
+        </aop:aspect>
+    </aop:config>
+
+    <bean id="RetryNTimes" class="org.apache.curator.retry.RetryNTimes">
+        <constructor-arg index="0" value="2" />
+        <constructor-arg index="1" value="5000" />
+
+    </bean>
+
+    <bean id="curatorFramework"
+          class="org.apache.curator.framework.CuratorFrameworkFactory"
+          factory-method="newClient" init-method="start" destroy-method="close">
+        <constructor-arg index="0" value="192.168.8.223:2181,192.168.8.224:2181,192.168.8.225:2181" />
+        <constructor-arg index="1" ref="RetryNTimes" />
+    </bean>
+
+    <bean id="zkClient" class="com.Utils.ZkUtil">
+        <constructor-arg index="0" ref="curatorFramework"/>
+    </bean>
+
+    <bean id="buyNowData" class="com.Utils.BuyNowData" init-method="initProdlist">
+        <constructor-arg index="0" ref="zkClient"/>
+    </bean>
+
+</beans>
