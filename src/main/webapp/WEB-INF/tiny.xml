@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tiny>
+    <bean id="tb" class="com.test.TinyBean">
+        <p name="age" value="18"></p>
+    </bean>
+    <bean id="tb2" class="com.test.TinyBean">
+        <p name="age" value="22"></p>
+    </bean>
+</tiny>

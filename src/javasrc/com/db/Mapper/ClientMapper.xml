@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.db.Mapper.ClientMapper">
+    <!--  查询所有记录  -->
+    <select id="getClient" parameterType="ClientEntity" resultType="int">
+        select count(*) from sys_clients where client_appid = #{client_appid}
+           and client_appkey = #{client_appkey}
+    </select>
+
+</mapper>

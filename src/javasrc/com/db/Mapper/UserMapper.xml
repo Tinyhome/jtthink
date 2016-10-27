@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.db.Mapper.UserMapper">
+    <!--  查询所有记录  -->
+    <select id="selectAll" resultType="UserEntity">
+        select * from users
+    </select>
+    <select id="selectByID" parameterType="UserEntity" resultType="UserEntity">
+        select * from sys_users where user_id = #{user_id}
+    </select>
+    <select id="isDistinct" parameterType="String" resultType="int">
+        select count(*) from sys_users where user_login=#{user_login}
+    </select>
+    <insert id="addUser" parameterType="UserEntity">
+      <selectKey resultType="java.lang.Integer"
+                 keyProperty="user_id" order="BEFORE">
+          select next value for MYCATSEQ_GLOBAL
+      </selectKey>
+        INSERT into sys_users(user_id,user_login,user_pwd,user_regdate)
+        values(#{user_id},#{user_login},md5(#{user_pwd}),now())
+    </insert>
+
+    <insert id="addUsers" parameterType="List">
+        INSERT into users(username,userphone) values
+        <foreach collection="list" item="u" separator=",">
+            (#{u.username},#{u.userphone})
+        </foreach>
+    </insert>
+    
+    <update id="editUser" parameterType="UserEntity">
+      UPDATE users set userphone=#{userphone} where id=#{id}
+    </update>
+
+    <update id="editMuti" parameterType="List">
+        update users set username=
+        case id
+          when 0 then 'abc'
+          else CONCAT('user',id)
+          end
+        where id in(-1
+        <foreach collection="list" item="u">
+            ,#{u.id}
+        </foreach>
+        )
+    </update>
+
+
+</mapper>

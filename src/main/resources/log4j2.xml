@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="INFO">
+       <Appenders>
+              <Console name="Console" target="SYSTEM_OUT">
+                     <PatternLayout pattern="%date{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n" />
+              </Console>
+              <File name="FileLog" fileName="/Users/Tinyhome/logs/filelog.log" append="false">
+                        <PatternLayout pattern="%d{HH:mm:ss.SSS} %-5level %class{36} %L %M - %msg%xEx%n"/>
+                 </File>
+
+             <RollingFile name="RollingFile" fileName="/Users/Tinyhome/logs/file-log.log"
+                       filepattern="/Users/Tinyhome/logs/file-log%d{yyyy-MM-dd-HH-mm-ss}.log">
+                 <PatternLayout pattern="%d{HH:mm:ss.SSS} %-5level %class{36} %L %M - %msg%xEx%n" />
+                 <Policies>
+                        <SizeBasedTriggeringPolicy size="5 KB" />
+                        <TimeBasedTriggeringPolicy modulate="true" interval="24"/>
+                 </Policies>
+
+              </RollingFile>
+       </Appenders>
+       <Loggers>
+              <logger name="com.Utils.LogUtil" level="info" additivity="false">
+                     <appender-ref ref="RollingFile"/>
+              </logger>
+              <Root level="trace">
+                     <AppenderRef ref="Console"/>
+              </Root>
+       </Loggers>
+</Configuration>
